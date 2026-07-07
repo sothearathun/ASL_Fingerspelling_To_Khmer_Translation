@@ -1,50 +1,50 @@
-Real-Time ASL Gesture Recognition
+ASL Fingerspelling to Khmer Translator
 -
-A deep learning-based system to recognize American Sign Language (ASL) gestures in real time using hand landmarks.
-
+A real-time American Sign Language (ASL) fingerspelling recognizer that builds English words from individual signed letters and translates them into Khmer — using MediaPipe hand landmarks, not images.
 
 ---
 
 About the Project
 -
-This project was created as part of a final year major project with the goal of making communication more accessible. It uses real-time webcam input to detect and identify ASL gestures, converting them into text and speech.
+This started as a final-year project to make communication more accessible. A webcam feed is passed through MediaPipe to extract 21 hand landmarks per frame, which a small neural network classifies into ASL letters. Individual letters are stabilized and assembled into words, which can then be translated into Khmer and spoken aloud.
 
+Two interfaces are available: a native OpenCV desktop window with keyboard controls, and a Streamlit web app with clickable buttons.
 
-Instead of working with image datasets, this system uses hand landmark data for a lightweight and accurate prediction model.
-
+> **Scope note:** Recognition works on *static, held handshapes* only (fingerspelling letters and similarly static word-signs). Signs that involve motion (most full ASL vocabulary words) are not supported by this single-frame architecture — see [How It Works](#how-it-works).
 
 ---
 Features
 -
-1) Real-time ASL recognition via webcam
-
-2) Trained on .npy landmark data, not images
-
-3) Uses a custom deep learning model
-
-4) Simple, clean output and fast performance
-
-5) Easy to retrain or extend to new gestures
-
-
+1) Real-time ASL letter recognition via webcam, trained on hand-landmark data (not images)
+2) Prediction stabilization — a letter is only accepted once held steadily for several frames, avoiding repeat spam
+3) Word building with edit controls (finalize, delete last letter, clear, reset history)
+4) English → Khmer translation of finalized words, spoken aloud via text-to-speech
+5) Live on-screen confidence, FPS, and model accuracy
+6) A running history of translated words
+7) Two interchangeable UIs: OpenCV desktop window or Streamlit web app
+8) Easy to retrain on your own hand/camera setup, or extend to new signs
 
 ---
 
 Tech Stack
 -
->Python
+> Python
 
->MediaPipe
+> MediaPipe (hand landmark detection)
 
->OpenCV
+> OpenCV
 
->TensorFlow / Keras
+> TensorFlow / Keras (letter classification model)
 
->NumPy
+> scikit-learn (train/test split, evaluation metrics)
 
->Tkinter (for GUI)
+> deep-translator (English → Khmer translation)
 
+> uharfbuzz + freetype-py (correct Khmer script shaping for the OpenCV overlay)
 
+> pyttsx3 (offline text-to-speech)
+
+> Streamlit + streamlit-webrtc (web UI alternative)
 
 ---
 
@@ -52,109 +52,76 @@ Folder Structure
 -
 ```
 Real-Time-ASL-Gesture-Recognition/
-├── data/                # Landmark training data (.npy) - created after running data_collection.py
-├── asl_model.h5         # Trained model - created after running train_model.py
-├── class_names.npy      # Class labels - created after running train_model.py
+├── data/                 # Landmark training data (.npy) - created by data_collection.py, gitignored
+├── asl_model.h5          # Trained model - created by train_model.py, gitignored
+├── class_names.npy       # Class labels - created by train_model.py, gitignored
+├── model_accuracy.json   # Test accuracy - created by train_model.py, gitignored
 ├── models/
-│   └── metadata.json    # Model input configuration (included)
-├── src/                 # All project scripts (data collection, training, inference)
-├── demo/                # Screenshots / previews
+│   └── metadata.json     # Model input configuration (included)
+├── src/
+│   ├── data_collection.py   # Records labeled hand-landmark samples from your webcam
+│   ├── train_model.py       # Trains the classifier; prints a classification report + confusion matrix
+│   ├── asl_recognition.py   # OpenCV desktop app: recognition, word-building, Khmer overlay, history panel
+│   ├── asl_app.py           # Streamlit web app: same pipeline, browser UI with buttons
+│   ├── translator.py        # English -> Khmer translation (deep-translator)
+│   └── utils.py             # Landmark normalization, Khmer text shaping, data loading helpers
 ├── requirements.txt
 ├── .gitignore
 ├── LICENSE
 └── README.md
-
 ```
----
-
-## Preview
-
-Here are some screenshots of the real-time ASL gesture recognition in action:
-
-<h3>ASL Gesture Recognition - Screenshot</h3>
-
-<img src="https://github.com/user-attachments/assets/5582e240-6585-4032-9ffd-f960d2aef9af" alt="ASL Output Screenshot" width="500">
-
-<img src="https://github.com/user-attachments/assets/726b8d8d-fa00-459f-b992-eb113515ecc2" alt="ASL Demo Screenshot" width="300">
-
 ---
 
 Getting Started
 -
 1. Install dependencies
 
-
-
    ```pip install -r requirements.txt```
 
-2. Collect your own data and train:
+2. Collect your own data and train
 
-
+   The trained model isn't included in this repo — accuracy depends heavily on your own hand shape, lighting, and camera, so you train it locally instead:
 
    ```python src/data_collection.py```
-   
+
+   Follow the prompt to enter a sign name (e.g. `A`) and record samples via webcam. Repeat once per letter/sign you want recognized, then:
+
    ```python src/train_model.py```
 
-3. Run the gesture recognizer
+   This creates `asl_model.h5`, `class_names.npy`, and `model_accuracy.json` in the project root, and prints a classification report + confusion matrix so you can see which signs (if any) are being confused with each other.
 
+3. Run it — pick one interface:
 
-
+   **OpenCV desktop window:**
    ```python src/asl_recognition.py```
 
-> ⚠️ **Important Note – Model File (`asl_model.h5`)**
->
-> The trained model file (`asl_model.h5`) is **not included** in this repository.
->
-> This is intentional — because gesture recognition accuracy depends heavily on your own hand shape, lighting, and camera setup.  
-> Instead of using a pre-trained model, you'll get **better accuracy** by quickly generating your own dataset and training locally.
->
-> The process is lightweight and takes only a few minutes:
->
-> 1. **Collect landmark data:**  
->    ```bash
->    python src/data_collection.py
->    ```
->    Follow the on-screen instructions to record a few samples for each gesture.
->
-> 2. **Train your model:**  
->    ```bash
->    python src/train_model.py
->    ```
->    This will automatically create `asl_model.h5` and `class_names.npy` in the project root.
->
-> 3. **Run real-time recognition:**  
->    ```bash
->    python src/asl_recognition.py
->    ```
->
-> 🧠 *Why this matters:*  
-> Training on your own landmarks ensures **higher accuracy** and keeps the repository small and flexible for different users and setups.
+   Controls:
+   | Key | Action |
+   |---|---|
+   | `SPACE` | Finalize current word → translate to Khmer → add to history |
+   | `Backspace` | Delete last letter |
+   | `c` | Clear current word |
+   | `r` | Reset history |
+   | `q` | Quit |
+
+   **Streamlit web app:**
+   ```streamlit run src/asl_app.py```
+
+   Same recognition pipeline, opened in your browser with clickable buttons (Finalize Word / Delete Last Letter / Clear Word / Reset History) instead of keyboard shortcuts.
 
 ---
 
 How It Works
 -
-1) MediaPipe detects 21 hand landmarks from webcam input
-
-2) These are passed as numerical data into a trained model
-
-3) The model predicts the corresponding ASL gesture
-
-4) The prediction is displayed in real time
-
-
+1) MediaPipe detects 21 hand landmarks per webcam frame
+2) Landmarks are normalized (centered on the wrist, scaled by palm size) so predictions are invariant to hand position/distance from the camera — see `normalize_landmarks` in `src/utils.py`
+3) A small dense neural network classifies the normalized landmarks into a letter
+4) A letter is only **accepted** once the same prediction holds steady for several consecutive frames, preventing a held sign from being registered repeatedly
+5) Accepted letters accumulate into a word; finalizing a word (SPACE / button) translates it to Khmer via Google Translate and speaks it aloud
+6) Because each prediction is a single static frame with no concept of motion or sequence, this only works for signs that are one held handshape — signs requiring movement would need a sequence model (e.g. LSTM over a window of frames) instead, which isn't implemented here
 
 ---
 
 LICENSE
 -
->This project is licensed under the MIT License.
-
-
----
-
-
-
-
-
-
+> This project is licensed under the MIT License.
