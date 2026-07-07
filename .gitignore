@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Data and model files (do not commit large files)
+data/
+data_old_unnormalized/
+asl_model.h5
+class_names.npy
+model_accuracy.json
+models/asl_model.h5
+models/class_names.npy
+demo_models/*.h5
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code local session state
+.claude/

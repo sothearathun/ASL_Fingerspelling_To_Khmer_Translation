@@ -1,0 +1,12 @@
+numpy<2
+opencv-python
+mediapipe==0.10.18
+tensorflow==2.18.0
+pyttsx3
+scikit-learn
+protobuf>=4.25.3,<5
+deep-translator
+uharfbuzz
+freetype-py
+streamlit
+streamlit-webrtc

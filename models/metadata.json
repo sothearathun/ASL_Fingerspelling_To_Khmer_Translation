@@ -1,0 +1,7 @@
+{
+  "seq_length": 30,
+  "features_per_frame": 126,
+  "landmark_format": "MediaPipe Hands (21 points with x, y, z)",
+  "created_by": "sothearathun",
+  "notes": "Train and inference must use the same sequence length and preprocessing steps."
+}
