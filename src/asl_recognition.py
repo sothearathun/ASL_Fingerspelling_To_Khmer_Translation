@@ -12,22 +12,25 @@ from tensorflow.keras.models import load_model
 from utils import normalize_landmarks, draw_khmer_text
 from translator import translate_to_khmer
 
-def speak_letter(letter: str) -> None:
-    """Speak a single letter via pyttsx3 (offline).
+def speak_english(text: str) -> None:
+    """Speak English text via pyttsx3 (offline). Used for both individual
+    letters as they're signed and the full word once finalized.
 
     A fresh engine is created per call: on Windows, reusing one pyttsx3
     engine across a loop that also calls other blocking C-extension code
     (mediapipe, cv2) leaves the SAPI5 driver stuck "busy" after the first
-    utterance, so only the first letter is ever spoken.
+    utterance, so only the first call is ever spoken.
     """
+    if not text:
+        return
     try:
         engine = pyttsx3.init()
         engine.setProperty('rate', 150)
-        engine.say(letter)
+        engine.say(text)
         engine.runAndWait()
         engine.stop()
     except Exception as e:
-        print(f"[TTS] Letter speech failed: {e}")
+        print(f"[TTS] English speech failed: {e}")
 
 
 def speak_khmer(text: str) -> None:
@@ -120,7 +123,7 @@ while cap.isOpened():
                     current_word += detected_letter
                     accepted = True
 
-                    speak_letter(detected_letter)
+                    speak_english(detected_letter)
             else:
                 last_prediction = None
                 stable_count = 0
@@ -168,10 +171,12 @@ while cap.isOpened():
         break
     elif key == 32:  # SPACE: finalize word
         if current_word:
-            last_khmer = translate_to_khmer(current_word)
-            history.append((current_word, last_khmer))
+            finalized_word = current_word
+            last_khmer = translate_to_khmer(finalized_word)
+            history.append((finalized_word, last_khmer))
             history = history[-MAX_HISTORY_SHOWN:]
             current_word = ""
+            speak_english(finalized_word)
             speak_khmer(last_khmer)
     elif key in (8, 127):  # Backspace/Delete: drop last letter
         current_word = current_word[:-1]
