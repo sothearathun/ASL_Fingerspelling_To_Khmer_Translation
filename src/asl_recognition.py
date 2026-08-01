@@ -5,12 +5,42 @@ import pyttsx3
 import time
 import json
 import os
+import tempfile
+from gtts import gTTS
+from playsound import playsound
 from tensorflow.keras.models import load_model
 from utils import normalize_landmarks, draw_khmer_text
 from translator import translate_to_khmer
 
-engine = pyttsx3.init()
-engine.setProperty('rate', 150)
+def speak_letter(letter: str) -> None:
+    """Speak a single letter via pyttsx3 (offline).
+
+    A fresh engine is created per call: on Windows, reusing one pyttsx3
+    engine across a loop that also calls other blocking C-extension code
+    (mediapipe, cv2) leaves the SAPI5 driver stuck "busy" after the first
+    utterance, so only the first letter is ever spoken.
+    """
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 150)
+        engine.say(letter)
+        engine.runAndWait()
+        engine.stop()
+    except Exception as e:
+        print(f"[TTS] Letter speech failed: {e}")
+
+
+def speak_khmer(text: str) -> None:
+    """Synthesize and play Khmer speech via gTTS (needs internet)."""
+    if not text:
+        return
+    try:
+        tmp_path = os.path.join(tempfile.gettempdir(), f"khmer_tts_{int(time.time() * 1000)}.mp3")
+        gTTS(text=text, lang='km').save(tmp_path)
+        playsound(tmp_path)
+        os.remove(tmp_path)
+    except Exception as e:
+        print(f"[TTS] Khmer speech failed: {e}")
 
 # -------------------------------------------------------------
 # NOTE:
@@ -34,8 +64,6 @@ hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_c
 mp_drawing = mp.solutions.drawing_utils
 
 cap = cv2.VideoCapture(0)
-last_spoken_time = 0
-speak_delay = 2  # Seconds between speech outputs
 
 CONFIDENCE_THRESHOLD = 0.8
 STABILITY_FRAMES = 12  # consecutive frames the same letter must hold before it's accepted
@@ -92,11 +120,7 @@ while cap.isOpened():
                     current_word += detected_letter
                     accepted = True
 
-                    current_time = time.time()
-                    if current_time - last_spoken_time > speak_delay:
-                        engine.say(detected_letter)
-                        engine.runAndWait()
-                        last_spoken_time = current_time
+                    speak_letter(detected_letter)
             else:
                 last_prediction = None
                 stable_count = 0
@@ -148,6 +172,7 @@ while cap.isOpened():
             history.append((current_word, last_khmer))
             history = history[-MAX_HISTORY_SHOWN:]
             current_word = ""
+            speak_khmer(last_khmer)
     elif key in (8, 127):  # Backspace/Delete: drop last letter
         current_word = current_word[:-1]
     elif key == ord('c'):  # clear current word
